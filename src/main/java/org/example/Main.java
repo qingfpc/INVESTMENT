@@ -7,6 +7,7 @@ import org.example.investment.PyramidStrategy;
 import org.example.investment.RecommendationPrinter;
 import org.example.investment.YahooChartProvider;
 
+import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -32,16 +33,34 @@ public class Main {
         }
 
         MarketDataProvider provider = new YahooChartProvider();
+
+        // 主标的分析
         try {
-            var bars = provider.fetchDailyBars(symbol, range);
-            BiasResult bias = MovingAverages.computeBiasFromBars(bars);
-            int mult = PyramidStrategy.multiplier(bias.biasPercent());
-            String zone = PyramidStrategy.zoneLabel(bias.biasPercent());
-            RecommendationPrinter.print(symbol, range, bias, mult, zone, baseAmount);
+            runAnalysis(provider, symbol, range, baseAmount);
         } catch (Exception e) {
             System.err.println("获取行情或计算失败: " + e.getMessage());
             System.exit(1);
         }
+
+        // 黄金（GLD）分析
+        String goldSymbol = "GLD";
+        if (!symbol.equals(goldSymbol)) {
+            System.out.println();
+            try {
+                runAnalysis(provider, goldSymbol, range, null);
+            } catch (Exception e) {
+                System.err.println("获取黄金行情或计算失败: " + e.getMessage());
+            }
+        }
+    }
+
+    private static void runAnalysis(MarketDataProvider provider, String symbol, String range, Double baseAmount)
+            throws IOException, InterruptedException {
+        var bars = provider.fetchDailyBars(symbol, range);
+        BiasResult bias = MovingAverages.computeBiasFromBars(bars);
+        int mult = PyramidStrategy.multiplier(bias.biasPercent());
+        String zone = PyramidStrategy.zoneLabel(bias.biasPercent());
+        RecommendationPrinter.print(symbol, range, bias, mult, zone, baseAmount);
     }
 
     private static Map<String, String> parseArgs(String[] args) {
